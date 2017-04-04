@@ -1,1 +1,1 @@
-from .contactlist import LSConnection
+from .connection import LSConnection

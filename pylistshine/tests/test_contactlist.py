@@ -1,7 +1,12 @@
 import unittest
-from unittest.mock import patch
 
 from pylistshine import connection
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 
 
 class ContactTest(unittest.TestCase):

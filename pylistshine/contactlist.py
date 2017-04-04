@@ -1,37 +1,10 @@
 import json
 import logging
-from abc import ABCMeta
 from builtins import object
-from functools import partial
 
 import requests
-from future.utils import with_metaclass
-
-from .constants import LISTSHINE_API_BASE
 
 logger = logging.getLogger(__name__)
-
-
-class LSConnection(with_metaclass(ABCMeta, object)):
-    ''' connection class, used for connecting to ListShine API'''
-
-    def __init__(self, api_key, api_base=LISTSHINE_API_BASE):
-        headers = {'Authorization': 'Token %s' % api_key}
-        self.api_base = api_base
-        self.connection_post = partial(requests.post, headers=headers)
-        self.connection_get = partial(requests.get, headers=headers)
-
-    def contact(self, list_id):
-        ''' initialize lscontact class
-        Args:
-            list_id (str): contactlist_uuid from listhine application
-        Returns:
-            LSContact instance
-	'''
-        return LSContact(connection=self, list_id=list_id)
-
-    def contactlist(self):
-        return LSContactList(connection=self)
 
 
 class LSContact(object):
@@ -46,7 +19,7 @@ class LSContact(object):
         ''' subscribe email to contactlist '''
         api_url = self.url_base + '/contactlist/subscribe/{list_id}/'.format(list_id=self.list_id)
         kwargs.update({'email': email})
-        response = self.connection.connection_post(url=api_url, json=kwargs)
+        response = requests.post(url=api_url, headers=self.connection.headers, json=kwargs)
         logger.warning('posting to url %s', api_url)
         response.raise_for_status()
         return response
@@ -70,7 +43,7 @@ class LSContact(object):
                                           'filter_field': 'email',
                                           'filter_value': email})
         params = {'jsonfilter': json.dumps(jsonfilter)}
-        response = self.connection.connection_get(url=api_url, params=params)
+        response = requests.get(url=api_url, headers=self.connection.headers, params=params)
         logger.warning('getting from url %s', api_url)
         response.raise_for_status()
         return response
@@ -89,7 +62,7 @@ class LSContact(object):
         contacts = self.list(email)
         for contact in contacts.json()['results']:
             api_url = api_url.format(list_id=self.list_id, id=contact['id'])
-            response = self.connection.connection_post(api_url)
+            response = requests.post(url=api_url, headers=self.connection.headers)
             response.raise_for_status()
             logger.warning('posting to url %s', api_url)
             yield response
@@ -104,12 +77,12 @@ class LSContactList(object):
 
     def list(self):
         ''' list all contactlists '''
-        return self.connection.connection_get(url=self.url_base)
+        return requests.get(url=self.url_base, headers=self.connection.headers)
 
     def retrieve(self, list_id):
         ''' contactlist details '''
         api_url = self.url_base + '/{list_id}/'.format(list_id=list_id)
-        return self.connection.connection_get(url=api_url)
+        return requests.get(url=api_url, headers=self.connection.headers)
 
 # class LSSegment:
 #     def all_segments(self):
